@@ -72,6 +72,22 @@ def freeze_cage(body: CageFreezeIn, authorization: AuthHeader = None):
             ).fetchone()
             if not acct:
                 raise HTTPException(404, "保证金户不存在")
+            # 开户名议事卡（甲路径）同口径：空名户禁止入笼，记开户名偏航
+            if not (acct["party_name"] or "").strip():
+                write_audit(
+                    conn,
+                    user,
+                    "开户名偏航",
+                    body.party_key,
+                    {
+                        "stance": "甲路径：空名拒开户",
+                        "stage": "入笼冻结",
+                        "reason": "空名户禁止入笼",
+                        "contract_no": body.contract_no,
+                        "amount": float(body.amount),
+                    },
+                )
+                raise HTTPException(409, "账户姓名缺失，禁止入笼（已记开户名偏航）")
             if acct["status"] != "正常":
                 raise HTTPException(409, "账户状态禁止入笼")
             amount = float(body.amount)

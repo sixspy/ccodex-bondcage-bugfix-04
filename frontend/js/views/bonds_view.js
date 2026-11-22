@@ -11,8 +11,8 @@ export const bondsViewTemplate = `
           <input v-model="bondForm.party_key" placeholder="P-NEW"/>
         </div>
         <div>
-          <label>名称</label>
-          <input v-model="bondForm.party_name" placeholder="新公司"/>
+          <label>名称 <span class="req">*</span></label>
+          <input v-model="bondForm.party_name" placeholder="新公司" required/>
         </div>
         <div>
           <label>开户入金</label>
@@ -22,6 +22,7 @@ export const bondsViewTemplate = `
       <div class="actions">
         <button @click="openBond">开户</button>
       </div>
+      <p class="hint">名称为空将被拒写并记「开户名偏航」（甲路径·2026-11-22 封板）。</p>
       <h3>入金</h3>
       <div class="form-row">
         <div>

@@ -245,6 +245,10 @@ createApp({
 
     async function openBond() {
       clearFlash();
+      if (!bondForm.value.party_name || !bondForm.value.party_name.trim()) {
+        flashErr("当事人姓名必填：空名开户将被拒写并记开户名偏航");
+        return;
+      }
       try {
         await api.openBond(bondForm.value);
         flashOk("开户成功");

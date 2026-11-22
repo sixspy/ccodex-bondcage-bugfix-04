@@ -50,8 +50,29 @@ def get_bond(party_key: str, authorization: AuthHeader = None):
 def open_bond(body: BondOpenIn, authorization: AuthHeader = None):
     user = require_writer(authorization)
     lock_key = f"bond:{body.party_key}"
+    # 开户名议事卡（2026-11-22 封板·甲路径）：空名拒开户，正式表零增，记拒写
+    name = (body.party_name or "").strip()
     with connect() as conn:
-        require_lock(conn, lock_key, user)
+        if not name:
+            write_audit(
+                conn,
+                user,
+                "开户名偏航",
+                body.party_key,
+                {
+                    "stance": "甲路径：空名拒开户",
+                    "reason": "当事人姓名为空或全空白",
+                    "party_name_raw": body.party_name,
+                    "initial_deposit": float(body.initial_deposit),
+                },
+            )
+            conn.commit()
+            raise HTTPException(422, "当事人姓名缺失，开户拒写（已记开户名偏航）")
+        try:
+            require_lock(conn, lock_key, user)
+        except HTTPException:
+            conn.commit()  # 后到一方争用痕落库，不得随回滚丢失
+            raise
         try:
             exists = conn.execute(
                 "SELECT id FROM bond_accounts WHERE party_key=?",
@@ -61,8 +82,6 @@ def open_bond(body: BondOpenIn, authorization: AuthHeader = None):
                 raise HTTPException(409, "当事人键已存在")
             now = now_iso()
             bal = float(body.initial_deposit)
-            # BUGFIX-04 埋雷：空串名称直接落库
-            name = body.party_name if body.party_name is not None else ""
             conn.execute(
                 """INSERT INTO bond_accounts(party_key,party_name,balance,frozen,status,created_at)
                    VALUES (?,?,?,?,?,?)""",
@@ -79,7 +98,7 @@ def open_bond(body: BondOpenIn, authorization: AuthHeader = None):
                 user,
                 "bond_open",
                 body.party_key,
-                {"party_name": body.party_name, "initial_deposit": bal},
+                {"party_name": name, "initial_deposit": bal},
             )
             conn.commit()
             row = conn.execute(

@@ -6,7 +6,8 @@ from pydantic import BaseModel, Field
 
 class BondOpenIn(BaseModel):
     party_key: str = Field(min_length=2, max_length=64)
-    party_name: str = Field(default="", max_length=128)  # BUGFIX-04 埋雷：允许空名
+    # 空名拒开户在 bonds_svc 服务层执行：须落「开户名偏航」拒写审计，不能由模型层 422 拦截
+    party_name: str = Field(default="", max_length=128)
     initial_deposit: float = Field(ge=0)
 
 

@@ -69,12 +69,17 @@ def reconcile_all(authorization: AuthHeader = None):
         cages = conn.execute("SELECT * FROM cages ORDER BY id").fetchall()
         items = [_reconcile_cage(conn, c) for c in cages]
         bad = [i for i in items if not i["balanced"]]
+        # 开户名议事卡（甲路径）对账检测：无名正式户恒应为 0
+        nameless = conn.execute(
+            "SELECT COUNT(*) c FROM bond_accounts WHERE TRIM(party_name)=''"
+        ).fetchone()["c"]
         return {
             "items": items,
             "summary": {
                 "total": len(items),
                 "balanced": len(items) - len(bad),
                 "unbalanced": len(bad),
+                "nameless_accounts": nameless,
             },
         }
 
@@ -121,9 +126,11 @@ def party_proof(party_key: str, authorization: AuthHeader = None):
         ).fetchone()["s"]
         frozen = float(acct["frozen"])
         live_f = float(live)
+        name_present = bool((acct["party_name"] or "").strip())
         return {
             "party_key": party_key,
             "account": dict(acct),
+            "name_present": name_present,
             "live_cage_available": live_f,
             "released_total": float(released),
             "forfeited_total": float(forfeited),

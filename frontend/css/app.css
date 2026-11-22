@@ -103,6 +103,10 @@ body {
   color: var(--bad);
   font-size: 13px;
 }
+.req {
+  color: var(--bad);
+  font-weight: 700;
+}
 
 .shell {
   max-width: 1280px;
